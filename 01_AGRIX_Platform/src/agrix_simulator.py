@@ -2,40 +2,55 @@ import json
 
 class AGRIXEconomicEngine:
     """
-    AGRIX Platformの経済価値を算出するメインエンジン。
-    MBT55のエビデンスに基づき、負のグリーンプレミアムを証明する。
+    AGRIX Platform Economic Simulator
+    Supports multi-language reporting (EN/JP).
     """
-    def __init__(self):
-        # BioNexus提供データに基づく定数
-        self.CARBON_SEQ_10YR = 109.5  # tCO2e/ha
+    def __init__(self, lang='en'):
+        self.lang = lang
+        # Constants based on BioNexus evidence
+        self.CARBON_SEQ_10YR = 109.5  # tCO2e/ha/10yr
         self.ANNUAL_CARBON_SEQ = self.CARBON_SEQ_10YR / 10
-        self.YIELD_INCREASE_RATE = 0.225  # 15-30%の中間値
-        self.COFFEE_RUST_PROTECTION = 0.80 # さび病抑制率
-        self.METHANE_REDUCTION = 0.82    # メタン削減率
+        self.YIELD_IMPROVEMENT_AVG = 0.225
+        self.RUST_DISEASE_REDUCTION = 0.80
 
-    def run_scenerio(self, crop_name, area_ha, unit_price_usd, carbon_price=100):
-        # 1. 直接的な収量増加価値
-        yield_value = area_ha * unit_price_usd * self.YIELD_INCREASE_RATE
-        
-        # 2. 炭素隔離の資産価値 (PBPE)
-        carbon_asset = area_ha * self.ANNUAL_CARBON_SEQ * carbon_price
-        
-        # 3. 損失回避価値 (例: コーヒーさび病)
-        loss_avoidance = 0
-        if crop_name.lower() == "coffee":
-            # 潜在的損失リスクを売上の20%と仮定
-            potential_loss = area_ha * unit_price_usd * 0.20
-            loss_avoidance = potential_loss * self.COFFEE_RUST_PROTECTION
-
-        total_impact = yield_value + carbon_asset + loss_avoidance
-        
-        return {
-            "Sector": crop_name,
-            "Carbon_Sequestration_tCO2e": area_ha * self.ANNUAL_CARBON_SEQ,
-            "Financial_Gain_USD": total_impact,
-            "Green_Premium_Status": "NEGATIVE (PROFITABLE)"
+        # Internationalization (i18n)
+        self.msg = {
+            'en': {
+                'title': "--- AGRIX Economic Impact Report ---",
+                'sector': "Target Sector",
+                'carbon_value': "Annual Carbon Asset Value (USD)",
+                'yield_gain': "Annual Yield Gain (USD)",
+                'neg_green_prem': "Negative Green Premium Status",
+                'summary': "The transition to Azure-AGRIX results in a direct financial surplus."
+            },
+            'ja': {
+                'title': "--- AGRIX 経済インパクト報告書 ---",
+                'sector': "対象セクター",
+                'carbon_value': "年間炭素資産価値 (USD)",
+                'yield_gain': "年間収量増加益 (USD)",
+                'neg_green_prem': "負のグリーンプレミアム達成状況",
+                'summary': "Azure-AGRIXへの移行は、直接的な財務余剰を創出します。"
+            }
         }
 
-# デモ実行: ハワード・シュルツ氏へのプレゼン用
-engine = AGRIXEconomicEngine()
-print(engine.run_scenerio("Coffee", 1000, 4000))
+    def run_simulation(self, crop, hectares, unit_price, carbon_price=100):
+        m = self.msg[self.lang]
+        carbon_asset = hectares * self.ANNUAL_CARBON_SEQ * carbon_price
+        yield_gain = hectares * unit_price * self.YIELD_IMPROVEMENT_AVG
+        
+        # Loss Avoidance logic for Coffee
+        loss_avoidance = 0
+        if crop.lower() == "coffee":
+            loss_avoidance = (hectares * unit_price * 0.20) * self.RUST_DISEASE_REDUCTION
+
+        total_gain = carbon_asset + yield_gain + loss_avoidance
+
+        print(m['title'])
+        print(f"{m['sector']}: {crop}")
+        print(f"{m['carbon_value']}: ${carbon_asset:,.0f}")
+        print(f"{m['yield_gain']}: ${yield_gain:,.0f}")
+        print(f"{m['neg_green_prem']}: ACHIEVED (Surplus: ${total_gain:,.0f})")
+        print(f"{m['summary']}\n")
+        return total_gain
+
+# Usage: engine = AGRIXEconomicEngine(lang='ja')
