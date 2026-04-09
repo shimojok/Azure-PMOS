@@ -3,53 +3,75 @@ import os
 
 class MetabolicIntelligence:
     """
-    HealthBook Metabolic Intelligence (MI) Engine.
-    Analyzes 200 questions to identify metabolic bottlenecks.
+    HealthBook Metabolic Intelligence (MI) Engine - Full Implementation
+    30万人の臨床知見に基づき、200問診から137疾病リスクを推論する。
     """
-    def __init__(self, lang='en'):
+    def __init__(self, lang='ja'):
         self.lang = lang
-        self.data_path = f"../data/questionnaire_200_{lang}.json"
-        self.library_path = "../data/mbt_kampo_library.json"
+        # ファイルパスの定義
+        data_dir = os.path.join(os.path.dirname(__file__), '../data')
         
-        # Load datasets
-        with open(self.data_path, 'r', encoding='utf-8') as f:
-            self.questions = json.load(f)['questions']
-        with open(self.library_path, 'r', encoding='utf-8') as f:
+        self.paths = {
+            'questions': f"{data_dir}/questionnaire_200_{lang}.json",
+            'matrix': f"{data_dir}/disease_matrix_137_en.json",
+            'library': f"{data_dir}/mbt_kampo_library.json" # 明日日英版へ差し替え
+        }
+        self.load_all_data()
+
+    def load_all_data(self):
+        with open(self.paths['questions'], 'r', encoding='utf-8') as f:
+            self.questions_data = json.load(f)['questions']
+        with open(self.paths['matrix'], 'r', encoding='utf-8') as f:
+            self.matrix_data = json.load(f)['matrix']
+        with open(self.paths['library'], 'r', encoding='utf-8') as f:
             self.kampo_library = json.load(f)['formulas']
 
-    def analyze(self, responses):
+    def analyze(self, user_responses):
         """
-        responses: dict { "1": True, "2": False, ... }
+        user_responses: { "Q001": True, "Q005": False, ... }
         """
-        scores = {}
-        for q_id, val in responses.items():
-            if val and q_id in self.questions:
-                q = self.questions[q_id]
-                weight = q.get('weight', 0.5)
-                for disease in q.get('related_diseases', []):
-                    scores[disease] = scores.get(disease, 0) + weight
+        # 1. 疾病ごとの累積スコア計算
+        disease_scores = {disease: 0.0 for disease in self.matrix_data.keys()}
+
+        for q_id, answered_yes in user_responses.items():
+            if answered_yes and q_id in self.questions_data:
+                # 各質問が持つ疾病への重み付け(Weight)を反映
+                relevant_impacts = self.questions_data[q_id].get('impacts', {})
+                for disease, weight in relevant_impacts.items():
+                    if disease in disease_scores:
+                        disease_scores[disease] += weight
+
+        # 2. スコアの高い順にソート (Top 5)
+        top_risks = sorted(disease_scores.items(), key=lambda x: x[1], reverse=True)[:5]
         
-        # Ranking top 3 risks
-        sorted_risks = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
-        return self._format_results(sorted_risks)
+        # 3. 解決策（漢方・ファイトケミカル）のマッピング
+        return self._build_report(top_risks)
 
-    def _format_results(self, risks):
-        results = []
-        for risk, score in risks:
-            # Match with Kampo library phytochemicals
-            matched_formula = self._find_best_formula(risk)
-            results.append({
-                "risk": risk,
-                "score": round(score, 2),
-                "intervention": matched_formula
+    def _build_report(self, top_risks):
+        report = []
+        for disease, score in top_risks:
+            # 疾病に関連する代謝経路(Pathways)をマトリックスから取得
+            pathways = self.matrix_data.get(disease, {}).get('pathways', [])
+            
+            # ライブラリーから最適な処方を検索
+            recommendation = self._match_library(disease, pathways)
+            
+            report.append({
+                "disease_risk": disease,
+                "confidence_score": round(score, 2),
+                "affected_pathways": pathways,
+                "suggested_solution": recommendation
             })
-        return results
+        return report
 
-    def _find_best_formula(self, risk_key):
-        # Simplified matching logic for the prototype
+    def _match_library(self, disease, pathways):
+        # 代謝経路または疾病名でライブラリーと照合
         for formula in self.kampo_library:
-            if any(risk_key in str(ind).lower() for ind in formula['indications']['primary']):
-                return formula['name']
-        return "Custom MBT Probiotics Formulation"
-
-# Usage: mi_engine = MetabolicIntelligence(lang='en')
+            if disease in formula['indications']['primary'] or \
+               any(p in formula['formula_synergy']['primary_pathway'] for p in pathways):
+                return {
+                    "name": formula['name'],
+                    "components": formula['components'],
+                    "mechanism": formula['formula_synergy']
+                }
+        return "Custom MBT Probiotics Formulation Required"
