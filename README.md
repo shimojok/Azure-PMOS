@@ -1,3 +1,5 @@
+![Azure-PMOS Banner](GitHub_README_Banner.png)
+
 # 🌐 Azure-PMOS: Planetary Metabolism Control Operating System
 
 ![Azure-PMOS Banner](https://img.shields.io/badge/Platform-Azure%20BioNexus-blue?style=for-the-badge&logo=microsoft-azure)
