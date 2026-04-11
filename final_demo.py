@@ -88,11 +88,30 @@ def main():
         })
         st.table(df)
 
-    # --- Iwanuma Evidence ---
+    # --- Tab 4: Iwanuma Evidence (Reliable Link Version) ---
     with tab4:
         st.header(t["iw_h"])
-        st.video("https://www.youtube.com/watch?v=urH8fNTZQ2Q")
-        st.write("Result: 1-week transformation of toxic sludge into bio-fertilizer." if lang=="en" else "実績：震災汚泥を1週間で無害化・肥料化。")
+        
+        # YouTubeのサムネイル画像をボタンとして配置
+        video_id = "urH8fNTZQ2Q"
+        thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+        watch_url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        st.write("### 🎬 Evidence: 1-Week Transformation (2011)")
+        
+        # 画像をクリックすると動画へ飛ぶリンク（確実な方法）
+        st.markdown(f'''
+            <a href="{watch_url}" target="_blank">
+                <img src="{thumbnail_url}" style="width:100%; border-radius:10px; border: 2px solid #0078D4;">
+            </a>
+            <p style="text-align:center; color:#0078D4; font-weight:bold;">
+                👉 Click to play video in a new tab / クリックして動画を再生
+            </p>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown("---")
+        st.success("Result: Transformation of toxic sludge into bio-fertilizer." if lang=="en" else "実績：震災汚泥を1週間で無害化・肥料化。")
+        st.write("This evidence proves the MBT logic can modulate planetary-scale waste into vital resources." if lang=="en" else "この実績は、MBTロジックが地球規模の廃棄物を資源に変える力を持つことを証明しています。")
 
 if __name__ == "__main__":
     main()
